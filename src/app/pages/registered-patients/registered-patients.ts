@@ -66,17 +66,34 @@ export class RegisteredPatients implements OnInit {
     this.updateForm.patchValue(patient);
     this.showModal();
   }
+save(): void {
+  let dto = { ...this.updateForm.value };
 
-  save(): void {
-    const dto = this.updateForm.value;
-    const req = dto.id
-      ? this.http.put(`${this.api}/${dto.id}`, dto)
-      : this.http.post(this.api, dto);
-    req.subscribe(() => {
+  // Remove ID if it's a new patient (POST)
+  if (!dto.id) {
+    delete dto.id;
+  }
+
+  // Format date to yyyy-MM-dd if it’s not already
+  if (dto.dateOfBirth instanceof Date) {
+    dto.dateOfBirth = this.formatDate(dto.dateOfBirth);
+  }
+
+  const req = dto.id
+    ? this.http.put(`${this.api}/${dto.id}`, dto)
+    : this.http.post(this.api, dto);
+
+  req.subscribe({
+    next: () => {
       this.loadAll();
       this.closeModal();
-    });
-  }
+    },
+    error: (err) => {
+      console.error('❌ Save failed:', err.error || err.message || err);
+    }
+  });
+}
+  
 
   remove(id: number): void {
     if (!confirm('Delete this patient?')) return;
