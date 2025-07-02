@@ -1,99 +1,110 @@
-// src/app/components/registered-patients.component.ts
-import { Component, OnInit }        from '@angular/core';
-import { CommonModule }             from '@angular/common';
-import { HttpClient }               from '@angular/common/http';
-import { FormsModule }              from '@angular/forms';
-import {
-  ReactiveFormsModule, FormBuilder, FormGroup, Validators
-} from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+
+// Declare bootstrap to avoid TypeScript errors
+declare var bootstrap: any;
 
 interface Patient {
-  id:            number;
-  firstName:     string;
-  lastName?:     string;
-  dateOfBirth:   string;
-  gender?:       string;
+  id: number;
+  firstName: string;
+  lastName?: string;
+  dateOfBirth: string;
+  gender?: string;
   contactNumber: string;
-  address?:      string;
+  address?: string;
 }
 
 @Component({
-  selector   : 'app-registered-patients',
-  standalone : true,
-  imports    : [CommonModule, FormsModule, ReactiveFormsModule],
+  selector: 'app-registered-patients',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './registered-patients.html',
-  styleUrls  : ['./registered-patients.scss']
+  styleUrls: ['./registered-patients.scss']
 })
 export class RegisteredPatients implements OnInit {
-
-  /* ---------- state ---------- */
-  patients:   Patient[] = [];
-  searchId   = '';
+  patients: Patient[] = [];
+  searchId = '';
   updateForm!: FormGroup;
-  api        = 'https://localhost:7010/api/patients';
+  api = 'https://localhost:7010/api/patients';
+  private modalInstance: any;
 
-  constructor(private fb: FormBuilder,
-              private http: HttpClient) {}
+  constructor(private fb: FormBuilder, private http: HttpClient) {}
 
-  /* ---------- life‑cycle ---------- */
   ngOnInit(): void {
     this.loadAll();
     this.updateForm = this.fb.group({
-      id:            [''],
-      firstName:     ['', Validators.required],
-      lastName:      [''],
-      dateOfBirth:   ['', Validators.required],
-      gender:        [''],
+      id: [''],
+      firstName: ['', Validators.required],
+      lastName: [''],
+      dateOfBirth: ['', Validators.required],
+      gender: [''],
       contactNumber: ['', Validators.required],
-      address:       ['']
+      address: ['']
     });
   }
 
-  /* ---------- CRUD helpers ---------- */
-  loadAll(): void {                                    // ← used by template
-    this.http.get<Patient[]>(this.api)
-             .subscribe(res => this.patients = res);
+  loadAll(): void {
+    this.http.get<Patient[]>(this.api).subscribe(res => (this.patients = res));
   }
 
-  search(): void {                                     // ← used by template
+  search(): void {
     const id = this.searchId.trim();
-    if (!id) { this.loadAll(); return; }
-
-    this.http.get<Patient>(`${this.api}/${id}`)
-             .subscribe(res => this.patients = [res]);
+    if (!id) { 
+      this.loadAll(); 
+    } else { 
+      this.http.get<Patient>(`${this.api}/${id}`).subscribe(res => (this.patients = [res])); 
+    }
   }
 
-  openEdit(p?: Patient): void {                        // ← used by template
-    /* if p exists it’s Edit, otherwise Add */
-    this.updateForm.reset();          // clear old state
-    this.updateForm.patchValue(p ?? {});
-    (window as any).bootstrap
-      .Modal.getOrCreateInstance('#editModal')
-      .show();
+  openEdit(p?: Patient): void {
+    this.updateForm.reset();
+    const patient = p
+      ? { ...p, dateOfBirth: this.formatDate(p.dateOfBirth) }
+      : {};
+    this.updateForm.patchValue(patient);
+    this.showModal();
   }
 
-  save(): void {                                       // ← used by template (ngSubmit)
+  save(): void {
     const dto = this.updateForm.value;
     const req = dto.id
-      ? this.http.put(`${this.api}/${dto.id}`, dto)    // UPDATE (PUT)
-      : this.http.post(this.api, dto);                 // CREATE (POST)
-
+      ? this.http.put(`${this.api}/${dto.id}`, dto)
+      : this.http.post(this.api, dto);
     req.subscribe(() => {
       this.loadAll();
       this.closeModal();
     });
   }
 
-  remove(id: number): void {                           // ← used by template
-    if (!confirm('Delete this patient?')) { return; }
-    this.http.delete(`${this.api}/${id}`)
-             .subscribe(() => this.loadAll());
+  remove(id: number): void {
+    if (!confirm('Delete this patient?')) return;
+    this.http.delete(`${this.api}/${id}`).subscribe(() => this.loadAll());
   }
 
-  /* ---------- utilities ---------- */
-  private closeModal(): void {
-    (window as any).bootstrap
-      .Modal.getInstance('#editModal')
-      ?.hide();
+  private formatDate(dt: string): string {
+    const d = new Date(dt);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  }
+
+  private showModal(): void {
+    const modalElement = document.getElementById('editModal');
+    if (!modalElement) {
+      console.error('Modal element not found');
+      return;
+    }
+    
+    // Create Bootstrap modal instance
+    this.modalInstance = new bootstrap.Modal(modalElement);
+    this.modalInstance.show();
+  }
+
+  closeModal(): void {
+    if (this.modalInstance) {
+      this.modalInstance.hide();
+    }
   }
 }

@@ -1,23 +1,89 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Modal } from './component/modal';
 
-import { RegisteredPatients } from './registered-patients';
+interface Patient {
+  id: number;
+  firstName: string;
+  lastName?: string;
+  dateOfBirth: string;
+  gender?: string;
+  contactNumber: string;
+  address?: string;
+}
 
-describe('RegisteredPatients', () => {
-  let component: RegisteredPatients;
-  let fixture: ComponentFixture<RegisteredPatients>;
+@Component({
+  selector: 'app-registered-patients',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, Modal],
+  templateUrl: './registered-patients.html',
+  styleUrls: ['./registered-patients.scss']
+})
+export class RegisteredPatients implements OnInit {
+  patients: Patient[] = [];
+  searchId = '';
+  updateForm!: FormGroup;
+  showModalFlag = false;
+  api = 'https://localhost:7010/api/patients';
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [RegisteredPatients]
-    })
-    .compileComponents();
+  constructor(private fb: FormBuilder, private http: HttpClient) {}
 
-    fixture = TestBed.createComponent(RegisteredPatients);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+  ngOnInit(): void {
+    this.loadAll();
+    this.updateForm = this.fb.group({
+      id: [''],
+      firstName: ['', Validators.required],
+      lastName: [''],
+      dateOfBirth: ['', Validators.required],
+      gender: [''],
+      contactNumber: ['', Validators.required],
+      address: ['']
+    });
+  }
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
-});
+  loadAll(): void {
+    this.http.get<Patient[]>(this.api).subscribe(res => this.patients = res);
+  }
+
+  search(): void {
+    const id = this.searchId.trim();
+    if (!id) {
+      this.loadAll();
+    } else {
+      this.http.get<Patient>(`${this.api}/${id}`).subscribe(res => this.patients = [res]);
+    }
+  }
+
+  openEdit(p?: Patient): void {
+    this.updateForm.reset();
+    const patient = p ? { ...p, dateOfBirth: this.formatDate(p.dateOfBirth) } : {};
+    this.updateForm.patchValue(patient);
+    this.showModalFlag = true;
+  }
+
+  save(): void {
+    const dto = this.updateForm.value;
+    const req = dto.id
+      ? this.http.put(`${this.api}/${dto.id}`, dto)
+      : this.http.post(this.api, dto);
+
+    req.subscribe(() => {
+      this.loadAll();
+      this.showModalFlag = false;
+    });
+  }
+
+  remove(id: number): void {
+    if (!confirm('Delete this patient?')) return;
+    this.http.delete(`${this.api}/${id}`).subscribe(() => this.loadAll());
+  }
+
+  private formatDate(dt: string): string {
+    const d = new Date(dt);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  }
+}
