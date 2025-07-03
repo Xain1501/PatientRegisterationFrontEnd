@@ -1,81 +1,106 @@
-<div class="container py-4">
+<div class="container mt-4">
+  <div class="d-flex justify-content-between mb-2">
+    <input class="form-control w-25" [(ngModel)]="searchId"
+      placeholder="Search by ID" />
+    <button class="btn btn-primary" (click)="search()">Search</button>
+    <button class="btn btn-success" (click)="openEdit()">Add New</button>
+  </div>
 
-<!-- Search + Add -->
-<div class="d-flex mb-3 align-items-start">
-  <input class="form-control me-2" placeholder="Search by ID" [(ngModel)]="searchId" (keyup.enter)="search()">
-  <button class="btn btn-primary me-2" (click)="search()">Search</button>
-  <button class="btn btn-outline-secondary me-auto" (click)="loadAll()">Reset</button>
-  <button class="btn btn-success" (click)="openEdit()">Add</button>
-</div>
+  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8 w-100">
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef> ID </th>
+      <td mat-cell *matCellDef="let p"> {{ p.id }} </td>
+    </ng-container>
 
-<!-- Patient Table -->
-<div class="table-responsive">
-  <table class="table table-striped table-hover align-middle">
-    <thead class="table-light">
-      <tr><th>ID</th><th>First</th><th>Last</th><th>DOB</th><th>Gender</th><th>Contact</th><th>Address</th><th>Actions</th></tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let p of patients">
-        <td>{{p.id}}</td><td>{{p.firstName}}</td><td>{{p.lastName}}</td><td>{{p.dateOfBirth | date}}</td><td>{{p.gender}}</td><td>{{p.contactNumber}}</td><td>{{p.address}}</td>
-        <td>
-          <button class="btn btn-sm btn-warning me-1" (click)="openEdit(p)">✏️</button>
-          <button class="btn btn-sm btn-danger" (click)="remove(p.id)">🗑️</button>
-        </td>
-      </tr>
-    </tbody>
+    <ng-container matColumnDef="firstName">
+      <th mat-header-cell *matHeaderCellDef> First Name </th>
+      <td mat-cell *matCellDef="let p"> {{ p.firstName }} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="lastName">
+      <th mat-header-cell *matHeaderCellDef> Last Name </th>
+      <td mat-cell *matCellDef="let p"> {{ p.lastName }} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="dateOfBirth">
+      <th mat-header-cell *matHeaderCellDef> DOB </th>
+      <td mat-cell *matCellDef="let p"> {{ p.dateOfBirth }} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="gender">
+      <th mat-header-cell *matHeaderCellDef> Gender </th>
+      <td mat-cell *matCellDef="let p"> {{ p.gender }} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="contactNumber">
+      <th mat-header-cell *matHeaderCellDef> Contact </th>
+      <td mat-cell *matCellDef="let p"> {{ p.contactNumber }} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="address">
+      <th mat-header-cell *matHeaderCellDef> Address </th>
+      <td mat-cell *matCellDef="let p"> {{ p.address }} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef> Actions </th>
+      <td mat-cell *matCellDef="let p">
+        <button class="btn btn-sm btn-warning me-1"
+          (click)="openEdit(p)">Edit</button>
+        <button class="btn btn-sm btn-danger"
+          (click)="remove(p.id)">Delete</button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
   </table>
-</div>
+
+  <mat-paginator [pageSize]="5" [pageSizeOptions]="[5, 10, 25]"
+    showFirstLastButtons> </mat-paginator>
 </div>
 
-<!-- Modal Form -->
-<div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog modal-lg"><div class="modal-content">
-    <form [formGroup]="updateForm" (ngSubmit)="save()">
+<!-- Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form [formGroup]="updateForm" (ngSubmit)="save()" class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Patient Details</h5>
+        <h5 class="modal-title">Patient Form</h5>
         <button type="button" class="btn-close" (click)="closeModal()"></button>
       </div>
       <div class="modal-body">
-        <div class="row g-3">
-          <!-- First Name -->
-          <div class="col-md-6">
-            <label class="form-label">First Name *</label>
-            <input class="form-control" formControlName="firstName">
-          </div>
-          <!-- Last Name -->
-          <div class="col-md-6">
-            <label class="form-label">Last Name</label>
-            <input class="form-control" formControlName="lastName">
-          </div>
-          <!-- Date of Birth -->
-          <div class="col-md-6">
-            <label class="form-label">DOB *</label>
-            <input type="date" class="form-control" formControlName="dateOfBirth">
-          </div>
-          <!-- Gender -->
-          <div class="col-md-6">
-            <label class="form-label">Gender</label>
-            <select class="form-select" formControlName="gender">
-              <option value="">Choose…</option>
-              <option>Male</option><option>Female</option><option>Other</option>
-            </select>
-          </div>
-          <!-- Contact -->
-          <div class="col-md-6">
-            <label class="form-label">Contact *</label>
-            <input class="form-control" formControlName="contactNumber">
-          </div>
-          <!-- Address -->
-          <div class="col-md-6">
-            <label class="form-label">Address</label>
-            <textarea class="form-control" formControlName="address"></textarea>
-          </div>
+        <input type="hidden" formControlName="id" />
+        <div class="mb-2">
+          <label>First Name</label>
+          <input class="form-control" formControlName="firstName" />
+        </div>
+        <div class="mb-2">
+          <label>Last Name</label>
+          <input class="form-control" formControlName="lastName" />
+        </div>
+        <div class="mb-2">
+          <label>Date of Birth</label>
+          <input type="date" class="form-control"
+            formControlName="dateOfBirth" />
+        </div>
+        <div class="mb-2">
+          <label>Gender</label>
+          <input class="form-control" formControlName="gender" />
+        </div>
+        <div class="mb-2">
+          <label>Contact Number</label>
+          <input class="form-control" formControlName="contactNumber" />
+        </div>
+        <div class="mb-2">
+          <label>Address</label>
+          <input class="form-control" formControlName="address" />
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-success">Save</button>
+        <button class="btn btn-secondary" type="button"
+          (click)="closeModal()">Cancel</button>
+        <button class="btn btn-primary" type="submit">Save</button>
       </div>
     </form>
-  </div></div>
+  </div>
 </div>

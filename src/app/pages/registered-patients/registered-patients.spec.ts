@@ -1,8 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Modal } from './component/modal';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatButtonModule } from '@angular/material/button';
+
+// bootstrap modal
+declare var bootstrap: any;
 
 interface Patient {
   id: number;
@@ -15,18 +22,31 @@ interface Patient {
 }
 
 @Component({
+ schemas: [],
   selector: 'app-registered-patients',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, Modal],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatButtonModule
+  ],
   templateUrl: './registered-patients.html',
   styleUrls: ['./registered-patients.scss']
 })
 export class RegisteredPatients implements OnInit {
-  patients: Patient[] = [];
-  searchId = '';
+  displayedColumns: string[] = ['id', 'firstName', 'lastName', 'dateOfBirth', 'gender', 'contactNumber', 'address', 'actions'];
+  dataSource = new MatTableDataSource<Patient>();
   updateForm!: FormGroup;
-  showModalFlag = false;
+  searchId = '';
   api = 'https://localhost:7010/api/patients';
+  private modalInstance: any;
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(private fb: FormBuilder, private http: HttpClient) {}
 
@@ -44,7 +64,10 @@ export class RegisteredPatients implements OnInit {
   }
 
   loadAll(): void {
-    this.http.get<Patient[]>(this.api).subscribe(res => this.patients = res);
+    this.http.get<Patient[]>(this.api).subscribe(res => {
+      this.dataSource.data = res;
+      this.dataSource.paginator = this.paginator;
+    });
   }
 
   search(): void {
@@ -52,7 +75,9 @@ export class RegisteredPatients implements OnInit {
     if (!id) {
       this.loadAll();
     } else {
-      this.http.get<Patient>(`${this.api}/${id}`).subscribe(res => this.patients = [res]);
+      this.http.get<Patient>(`${this.api}/${id}`).subscribe(res => {
+        this.dataSource.data = [res];
+      });
     }
   }
 
@@ -60,18 +85,27 @@ export class RegisteredPatients implements OnInit {
     this.updateForm.reset();
     const patient = p ? { ...p, dateOfBirth: this.formatDate(p.dateOfBirth) } : {};
     this.updateForm.patchValue(patient);
-    this.showModalFlag = true;
+    this.showModal();
   }
 
   save(): void {
-    const dto = this.updateForm.value;
+    let dto = { ...this.updateForm.value };
+    if (!dto.id) delete dto.id;
+
+    if (dto.dateOfBirth instanceof Date) {
+      dto.dateOfBirth = this.formatDate(dto.dateOfBirth);
+    }
+
     const req = dto.id
       ? this.http.put(`${this.api}/${dto.id}`, dto)
       : this.http.post(this.api, dto);
 
-    req.subscribe(() => {
-      this.loadAll();
-      this.showModalFlag = false;
+    req.subscribe({
+      next: () => {
+        this.loadAll();
+        this.closeModal();
+      },
+      error: (err) => console.error('❌ Save failed:', err.error || err.message || err)
     });
   }
 
@@ -85,5 +119,18 @@ export class RegisteredPatients implements OnInit {
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
     return `${d.getFullYear()}-${mm}-${dd}`;
+  }
+
+  private showModal(): void {
+    const modalElement = document.getElementById('editModal');
+    if (!modalElement) return;
+    this.modalInstance = new bootstrap.Modal(modalElement);
+    this.modalInstance.show();
+  }
+
+  closeModal(): void {
+    if (this.modalInstance) {
+      this.modalInstance.hide();
+    }
   }
 }
