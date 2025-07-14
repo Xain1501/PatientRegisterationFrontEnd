@@ -1,8 +1,14 @@
 <div class="container mt-4">
-  <div class="d-flex justify-content-between mb-2">
-    <input class="form-control w-25" [(ngModel)]="searchId"
-      placeholder="Search by ID" />
+  <div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+
+    <input 
+    class="form-control flex-grow-1" 
+    style="max-width :500px;" 
+    [(ngModel)]="searchId"
+    placeholder="Search by ID" />
+
     <button class="btn btn-primary" (click)="search()">Search</button>
+   <button class="btn btn-secondary" (click)="loadAll()">Reset</button>
     <button class="btn btn-success" (click)="openEdit()">Add New</button>
   </div>
 

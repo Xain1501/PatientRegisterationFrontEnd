@@ -110,7 +110,7 @@ export class RegisteredPatients implements OnInit {
   }
 
   remove(id: number): void {
-    if (!confirm('Delete this patient?')) return;
+     if (!confirm('Delete this patient?')) return;
     this.http.delete(`${this.api}/${id}`).subscribe(() => this.loadAll());
   }
 
